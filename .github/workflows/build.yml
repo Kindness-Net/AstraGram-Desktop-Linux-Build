@@ -58,7 +58,8 @@ jobs:
 
     env:
       IMAGE_TAG: ayugram:centos_env
-      # 两个架构共享 10 GB，给依赖镜像层和 mount 缓存留出容量。
+      # 每个架构为完整依赖缓存（镜像层 + mount）预留 2 GiB。
+      # 应用 ccache 的 3G 为十进制；双架构总预算约 9.59 GiB，保留约 0.41 GiB 余量。
       CCACHE_MAXSIZE: 3G
 
     steps:
@@ -191,6 +192,7 @@ jobs:
           node .buildkit-cache-dance/dist/index.js --extract \
             --builder "$BUILDER" --cache-map "$MOUNT_CACHE_MAP" \
             --scratch-dir "$RUNNER_TEMP/cache-dance"
+          # 384M 只限制依赖编译的 ccache，包含在上述 2 GiB 预算内，不裁剪镜像层。
           CCACHE_DIR="$RUNNER_TEMP/.mount-cache/var/cache/ccache" \
             CCACHE_MAXSIZE=384M ccache --cleanup
 
