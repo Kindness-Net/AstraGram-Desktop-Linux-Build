@@ -71,7 +71,7 @@ jobs:
       - name: Check out repository.
         uses: actions/checkout@v7
         with:
-          repository: Kindness-Kismet/AyuGramDesktop-Plus
+          repository: Kindness-Kismet/AstraGram-Desktop
           ref: ${{ inputs.source_sha }}
           submodules: recursive
           persist-credentials: false
@@ -88,7 +88,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/build_provenance.py validate-source \
-            --repository Kindness-Kismet/AyuGramDesktop-Plus \
+            --repository Kindness-Kismet/AstraGram-Desktop \
             --sha "$SOURCE_SHA" \
             --ref "$SOURCE_REF" \
             --run-id "$SOURCE_RUN_ID" \
@@ -241,7 +241,7 @@ jobs:
           test -n "$PACKER_PRIVATE_H"
           printf '%s' "$PACKER_PRIVATE_H" > Telegram/SourceFiles/_other/packer_private.h
 
-      - name: Build AyuGram Desktop.
+      - name: Build AstraGram Desktop.
         run: |
           set -euo pipefail
           ccache -z
@@ -297,7 +297,7 @@ jobs:
       - name: Check release output.
         run: |
           set -euo pipefail
-          filePath="out/Release/AyuGram"
+          filePath="out/Release/AstraGram"
           if test -f "$filePath"; then
             echo "Build successfully done! :)"
             size=$(stat -c %s "$filePath")
@@ -313,9 +313,9 @@ jobs:
           version=$(sed -n 's/^AppVersionStrSmall //p' Telegram/build/version)
           test -n "$version"
           cd out/Release
-          rm -f "AyuGram-v${version}-linux-${{ matrix.arch }}.zip"
-          zip "AyuGram-v${version}-linux-${{ matrix.arch }}.zip" AyuGram
-          test ! -f Updater || zip "AyuGram-v${version}-linux-${{ matrix.arch }}.zip" Updater
+          rm -f "AstraGram-v${version}-linux-${{ matrix.arch }}.zip"
+          zip "AstraGram-v${version}-linux-${{ matrix.arch }}.zip" AstraGram
+          test ! -f Updater || zip "AstraGram-v${version}-linux-${{ matrix.arch }}.zip" Updater
 
       # Packer 链接容器内的库，并按编译架构生成独立更新包。
       - name: Pack update.
@@ -327,7 +327,7 @@ jobs:
           -u $(id -u) \
           -v $PWD:/usr/src/tdesktop \
           $IMAGE_TAG \
-          bash -c "cd /usr/src/tdesktop/out/Release && ./Packer -version $version -path AyuGram -path Updater"
+          bash -c "cd /usr/src/tdesktop/out/Release && ./Packer -version $version -path AstraGram -path Updater"
           test -s "out/Release/${{ matrix.updater }}${version}"
 
       - name: Write artifact provenance.
@@ -340,12 +340,12 @@ jobs:
           APP_UPDATE_VERSION: ${{ inputs.appupdateversion }}
         run: |
           set -euo pipefail
-          archive=$(ls out/Release/AyuGram-v*-linux-${{ matrix.arch }}.zip)
+          archive=$(ls out/Release/AstraGram-v*-linux-${{ matrix.arch }}.zip)
           update="out/Release/${{ matrix.updater }}${APP_UPDATE_VERSION}"
           python3 scripts/build_provenance.py write-artifact-manifest \
             --platform linux \
             --arch "${{ matrix.arch }}" \
-            --source-repository Kindness-Kismet/AyuGramDesktop-Plus \
+            --source-repository Kindness-Kismet/AstraGram-Desktop \
             --source-ref "$SOURCE_REF" \
             --source-sha "$SOURCE_SHA" \
             --source-run-id "$SOURCE_RUN_ID" \
@@ -362,9 +362,9 @@ jobs:
       - name: Upload artifact.
         uses: actions/upload-artifact@v7
         with:
-          name: AyuGram-Linux-${{ matrix.arch }}
+          name: AstraGram-Linux-${{ matrix.arch }}
           path: |
-            out/Release/AyuGram-v*-linux-${{ matrix.arch }}.zip
+            out/Release/AstraGram-v*-linux-${{ matrix.arch }}.zip
             out/Release/${{ matrix.updater }}*
             out/Release/provenance-linux-${{ matrix.arch }}.json
           retention-days: 7
