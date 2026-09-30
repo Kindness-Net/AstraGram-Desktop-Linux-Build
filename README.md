@@ -1,6 +1,6 @@
-# AyuGram Desktop Plus Linux builds
+# AstraGram Linux builds
 
-This repository hosts the Linux build workflow and dependency cache for [AyuGram Desktop Plus](https://github.com/Kindness-Kismet/AyuGramDesktop-Plus). Releases are coordinated and published by the source repository.
+This repository hosts the Linux build workflow and dependency cache for [AstraGram](https://github.com/Kindness-Kismet/AstraGram-Desktop). Releases are coordinated and published by the source repository.
 
 The source repository dispatches an exact commit and Release workflow run. This repository builds the x64 and ARM64 packages, keeps its own GitHub Actions caches, and returns short-lived artifacts with provenance manifests. It does not publish releases.
 
