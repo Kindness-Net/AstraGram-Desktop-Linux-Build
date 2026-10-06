@@ -1,40 +1,15 @@
-name: Linux
-run-name: "Linux · source run #${{ inputs.source_run_id }}.${{ inputs.source_run_attempt }} · ${{ inputs.source_sha }}"
+name: Upstream validation
+run-name: "Upstream v7.2.10 validation · ecb55de8ca72dc2b145a5ff63c499a2ae5a413c0"
 
 on:
   workflow_dispatch:
-    inputs:
-      source_sha:
-        description: Exact source commit SHA.
-        required: true
-        type: string
-      source_ref:
-        description: Source Git ref.
-        required: true
-        type: string
-      source_run_id:
-        description: Source Release workflow run ID.
-        required: true
-        type: string
-      source_run_attempt:
-        description: Source Release workflow run attempt.
-        required: true
-        type: string
-      version:
-        description: Display version from the source commit.
-        required: true
-        type: string
-      appupdateversion:
-        description: Update version from the source commit.
-        required: true
-        type: string
 
 permissions:
   contents: read
   actions: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.source_ref }}
+  group: upstream-7.2.10-validation
   cancel-in-progress: true
 
 jobs:
@@ -72,30 +47,17 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: Kindness-Kismet/AstraGram-Desktop
-          ref: ${{ inputs.source_sha }}
+          ref: ecb55de8ca72dc2b145a5ff63c499a2ae5a413c0
           submodules: recursive
           persist-credentials: false
 
-      - name: Validate source request.
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_SHA: ${{ inputs.source_sha }}
-          SOURCE_REF: ${{ inputs.source_ref }}
-          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
-          SOURCE_RUN_ATTEMPT: ${{ inputs.source_run_attempt }}
-          VERSION: ${{ inputs.version }}
-          APP_UPDATE_VERSION: ${{ inputs.appupdateversion }}
+      - name: Validate pinned test source.
+        shell: bash
         run: |
           set -euo pipefail
-          python3 scripts/build_provenance.py validate-source \
-            --repository Kindness-Kismet/AstraGram-Desktop \
-            --sha "$SOURCE_SHA" \
-            --ref "$SOURCE_REF" \
-            --run-id "$SOURCE_RUN_ID" \
-            --run-attempt "$SOURCE_RUN_ATTEMPT" \
-            --version "$VERSION" \
-            --appupdateversion "$APP_UPDATE_VERSION" \
-            --workflow-path .github/workflows/build-release.yml
+          test "$GITHUB_ACTOR" = "KiritoXDone"
+          test "$(git rev-parse HEAD)" = "ecb55de8ca72dc2b145a5ff63c499a2ae5a413c0"
+          git submodule status --recursive
 
       - name: Check packer cache guard.
         run: |
@@ -317,56 +279,12 @@ jobs:
           zip "AstraGram-v${version}-linux-${{ matrix.arch }}.zip" AstraGram
           test ! -f Updater || zip "AstraGram-v${version}-linux-${{ matrix.arch }}.zip" Updater
 
-      # Packer 链接容器内的库，并按编译架构生成独立更新包。
-      - name: Pack update.
-        run: |
-          set -euo pipefail
-          version=$(sed -n 's/^AppUpdateVersion  *//p' Telegram/build/version)
-          test -n "$version"
-          docker run --rm \
-          -u $(id -u) \
-          -v $PWD:/usr/src/tdesktop \
-          $IMAGE_TAG \
-          bash -c "cd /usr/src/tdesktop/out/Release && ./Packer -version $version -path AstraGram -path Updater"
-          test -s "out/Release/${{ matrix.updater }}${version}"
-
-      - name: Write artifact provenance.
-        env:
-          SOURCE_SHA: ${{ inputs.source_sha }}
-          SOURCE_REF: ${{ inputs.source_ref }}
-          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
-          SOURCE_RUN_ATTEMPT: ${{ inputs.source_run_attempt }}
-          VERSION: ${{ inputs.version }}
-          APP_UPDATE_VERSION: ${{ inputs.appupdateversion }}
-        run: |
-          set -euo pipefail
-          archive=$(ls out/Release/AstraGram-v*-linux-${{ matrix.arch }}.zip)
-          update="out/Release/${{ matrix.updater }}${APP_UPDATE_VERSION}"
-          python3 scripts/build_provenance.py write-artifact-manifest \
-            --platform linux \
-            --arch "${{ matrix.arch }}" \
-            --source-repository Kindness-Kismet/AstraGram-Desktop \
-            --source-ref "$SOURCE_REF" \
-            --source-sha "$SOURCE_SHA" \
-            --source-run-id "$SOURCE_RUN_ID" \
-            --source-run-attempt "$SOURCE_RUN_ATTEMPT" \
-            --builder-repository "$GITHUB_REPOSITORY" \
-            --builder-run-id "$GITHUB_RUN_ID" \
-            --builder-run-attempt "$GITHUB_RUN_ATTEMPT" \
-            --version "$VERSION" \
-            --appupdateversion "$APP_UPDATE_VERSION" \
-            --output "out/Release/provenance-linux-${{ matrix.arch }}.json" \
-            --file "$archive" \
-            --file "$update"
-
       - name: Upload artifact.
         uses: actions/upload-artifact@v7
         with:
-          name: AstraGram-Linux-${{ matrix.arch }}
+          name: Test-Upstream-7.2.10-ecb55de8ca-AstraGram-Linux-${{ matrix.arch }}
           path: |
             out/Release/AstraGram-v*-linux-${{ matrix.arch }}.zip
-            out/Release/${{ matrix.updater }}*
-            out/Release/provenance-linux-${{ matrix.arch }}.json
           retention-days: 7
 
       - name: Remove packer signing key.
