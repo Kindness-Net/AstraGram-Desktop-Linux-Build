@@ -87,7 +87,7 @@ jobs:
           APP_UPDATE_VERSION: ${{ inputs.appupdateversion }}
         run: |
           set -euo pipefail
-          python3 scripts/build_provenance.py validate-source \
+          python3 .github/scripts/build_provenance.py validate-source \
             --repository Kindness-Kismet/AstraGram-Desktop \
             --sha "$SOURCE_SHA" \
             --ref "$SOURCE_REF" \
@@ -342,7 +342,7 @@ jobs:
           set -euo pipefail
           archive=$(ls out/Release/AstraGram-v*-linux-${{ matrix.arch }}.zip)
           update="out/Release/${{ matrix.updater }}${APP_UPDATE_VERSION}"
-          python3 scripts/build_provenance.py write-artifact-manifest \
+          python3 .github/scripts/build_provenance.py write-artifact-manifest \
             --platform linux \
             --arch "${{ matrix.arch }}" \
             --source-repository Kindness-Kismet/AstraGram-Desktop \
