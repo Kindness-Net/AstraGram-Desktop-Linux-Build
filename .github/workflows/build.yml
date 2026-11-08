@@ -51,13 +51,20 @@ jobs:
           - arch: x64
             runner: ubuntu-latest
             updater: tlinuxupd
+            ccache_arch: x86_64
+            ccache_sha256: 508b2a1217dc6e04a23e967c7b95a0fb45d8a7e16fde9e180919698f2e2be060
           - arch: arm64
             runner: ubuntu-24.04-arm
             updater: tlinuxarmupd
+            ccache_arch: aarch64
+            ccache_sha256: 9cdd30c768a5b06d27bea8ec28b138735c30910c1e845b66f522687ae950dadc
     timeout-minutes: 359
 
     env:
       IMAGE_TAG: ayugram:centos_env
+      CCACHE_TAG: v4.13.6
+      CCACHE_PACKAGE: ccache-4.13.6-linux-${{ matrix.ccache_arch }}-glibc
+      CCACHE_SHA256: ${{ matrix.ccache_sha256 }}
       # 每个架构为完整依赖缓存（镜像层 + mount）预留 2 GiB。
       # 应用 ccache 的 3G 为十进制；双架构总预算约 9.59 GiB，保留约 0.41 GiB 余量。
       CCACHE_MAXSIZE: 3G
@@ -102,15 +109,23 @@ jobs:
           set -euo pipefail
           python3 -c "from pathlib import Path; assert b'ccache:disable' in Path('Telegram/SourceFiles/_other/packer.cpp').read_bytes()[:4096]"
 
+      - name: Install ccache.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download "$CCACHE_TAG" --repo ccache/ccache \
+            --pattern "$CCACHE_PACKAGE.tar.xz" --output "$RUNNER_TEMP/ccache.tar.xz"
+          echo "$CCACHE_SHA256  $RUNNER_TEMP/ccache.tar.xz" | sha256sum -c -
+          sudo tar xJf "$RUNNER_TEMP/ccache.tar.xz" -C /usr/local/bin \
+            --strip-components=1 "$CCACHE_PACKAGE/ccache"
+          echo "CCACHE_DIR=$RUNNER_TEMP/.ayugram-cache" >> "$GITHUB_ENV"
+
       - name: First set up.
         run: |
           set -euo pipefail
           sudo apt update
           curl -sSL https://install.python-poetry.org | python3 -
-          ccache_arch=$(uname -m)
-          curl -sSL "https://github.com/ccache/ccache/releases/download/v4.13.6/ccache-4.13.6-linux-${ccache_arch}-glibc.tar.xz" \
-          | sudo tar xJ -C /usr/local/bin --strip-components=1 "ccache-4.13.6-linux-${ccache_arch}-glibc/ccache"
-          echo "CCACHE_DIR=$RUNNER_TEMP/.ayugram-cache" >> $GITHUB_ENV
           cd Telegram/build/docker/centos_env
           poetry install
           # 正式版：DEBUG 与 LTO 均关闭
